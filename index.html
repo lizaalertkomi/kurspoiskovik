@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>Экзамен курса «Поисковик» — ЛизаАлерт</title>
     <style>
         :root {
@@ -99,23 +99,23 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        h1 {
+        h1, h2 {
             color: var(--la-dark);
-            font-size: 1.65rem;
-            margin-bottom: 14px;
+            margin-bottom: 16px;
             line-height: 1.3;
+            font-size: 1.65rem;
         }
 
         p {
             line-height: 1.55;
-            margin-bottom: 18px;
+            margin-bottom: 20px;
             color: #444;
             font-size: 1rem;
         }
 
         /* Формы */
         .form-group {
-            margin-bottom: 18px;
+            margin-bottom: 20px;
         }
 
         label {
@@ -135,7 +135,7 @@
             padding: 14px 16px;
             border: 2px solid var(--la-border);
             border-radius: 8px;
-            font-size: 16px; /* Предотвращает авто-зум на iOS */
+            font-size: 16px;
             transition: border-color 0.2s;
             background-color: var(--la-white);
         }
@@ -167,6 +167,7 @@
             align-items: center;
             justify-content: center;
             min-height: 50px;
+            touch-action: manipulation;
         }
 
         .btn:hover {
@@ -181,31 +182,28 @@
             width: 100%;
         }
 
-        /* Верхняя панель с таймером */
-        .quiz-top-bar {
+        /* Верхний ряд с таймером над прогресс-баром */
+        .timer-top-row {
             display: flex;
             justify-content: flex-end;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
-        .timer-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background-color: #FFF3EB;
+        .inline-timer {
             color: var(--la-orange);
-            border: 1px solid #FFD6BA;
-            padding: 6px 14px;
-            border-radius: 6px;
             font-weight: 800;
-            font-size: 1rem;
             font-variant-numeric: tabular-nums;
+            font-size: 1.05rem;
+            background-color: #FFF3EB;
+            padding: 5px 12px;
+            border-radius: 6px;
+            border: 1px solid #FFD6BA;
         }
 
-        .timer-badge.warning {
-            background-color: #FFEBEE;
-            color: #C62828;
-            border-color: #EF9A9A;
+        .inline-timer.warning {
+            background-color: #B00020;
+            color: var(--la-white);
+            border-color: #B00020;
         }
 
         /* Прогресс бар */
@@ -215,9 +213,9 @@
 
         .progress-info {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             font-weight: 600;
             margin-bottom: 8px;
             color: #555;
@@ -264,8 +262,10 @@
             cursor: pointer;
             transition: all 0.15s;
             font-weight: 400;
+            font-size: 0.98rem;
             line-height: 1.4;
             min-height: 52px;
+            touch-action: manipulation;
         }
 
         .option-item:hover {
@@ -297,7 +297,6 @@
             background-color: var(--la-gray);
             padding: 20px;
             border-radius: 8px;
-            margin-bottom: 10px;
             border-left: 4px solid var(--la-orange);
         }
 
@@ -305,13 +304,14 @@
             font-size: 2rem;
             font-weight: 800;
             color: var(--la-orange);
-            margin: 8px 0;
+            margin: 10px 0;
         }
 
-        /* Адаптация под мобильные устройства */
+        /* Адаптация под мобильные экраны */
         @media (max-width: 600px) {
             header {
                 padding: 12px 14px;
+                border-bottom: none;
             }
 
             .logo {
@@ -320,13 +320,13 @@
             }
 
             .logo-badge {
-                padding: 4px 8px;
-                font-size: 0.9rem;
+                padding: 3px 8px;
+                font-size: 0.85rem;
             }
 
             main {
-                padding: 12px 10px;
                 align-items: flex-start;
+                padding: 12px 10px 24px 10px;
             }
 
             .card {
@@ -335,7 +335,7 @@
                 border-top-width: 5px;
             }
 
-            h1 {
+            h1, h2 {
                 font-size: 1.35rem;
                 margin-bottom: 12px;
             }
@@ -345,39 +345,19 @@
                 margin-bottom: 16px;
             }
 
-            .quiz-top-bar {
-                margin-bottom: 10px;
-            }
-
-            .timer-badge {
-                padding: 5px 12px;
-                font-size: 0.95rem;
-            }
-
-            .progress-wrapper {
-                margin-bottom: 16px;
-            }
-
             .question-text {
                 font-size: 1.05rem;
                 margin-bottom: 14px;
             }
 
-            .options-list {
-                gap: 8px;
-                margin-bottom: 20px;
-            }
-
             .option-item {
-                padding: 12px 12px;
+                padding: 12px 14px;
                 font-size: 0.95rem;
                 gap: 10px;
             }
 
-            .btn {
+            .nav-buttons .btn {
                 width: 100%;
-                padding: 14px 20px;
-                font-size: 1rem;
             }
 
             .result-summary {
@@ -423,7 +403,7 @@
         <!-- ЭКРАН 2: Приветствие и Инструкция -->
         <div id="screen-instruction" class="screen">
             <h1>Приветствуем на экзамене курса «Поисковик»!</h1>
-            <p style="font-size: 1.05rem; font-weight: 600; color: var(--la-dark);">
+            <p style="font-size: 1.1rem; font-weight: 600; color: var(--la-dark);">
                 У вас есть 60 минут ответить на 40 вопросов. Удачи!
             </p>
             <p>
@@ -437,10 +417,9 @@
 
         <!-- ЭКРАН 3: Тестирование -->
         <div id="screen-quiz" class="screen">
-            <div class="quiz-top-bar">
-                <span id="timer" class="timer-badge">60:00</span>
+            <div class="timer-top-row">
+                <span id="timer" class="inline-timer">60:00</span>
             </div>
-
             <div class="progress-wrapper">
                 <div class="progress-info">
                     <span id="question-counter">Вопрос 1 из 40</span>
@@ -458,7 +437,7 @@
             </div>
         </div>
 
-        <!-- ЭКРАН 4: Итоговый результат -->
+        <!-- ЭКРАН 4: Результаты -->
         <div id="screen-result" class="screen">
             <h1>Экзамен завершен</h1>
             <div class="result-summary">
@@ -909,7 +888,6 @@
     }
 
     function startTest() {
-        const timerEl = document.getElementById('timer');
         updateTimerDisplay();
 
         timerInterval = setInterval(() => {
@@ -917,7 +895,7 @@
             updateTimerDisplay();
 
             if (timeRemaining <= 300) {
-                timerEl.classList.add('warning');
+                document.getElementById('timer').classList.add('warning');
             }
 
             if (timeRemaining <= 0) {
@@ -986,24 +964,10 @@
         }
     }
 
-    function sendResultsToGoogleSheet(payload) {
-        if (!GOOGLE_SHEET_WEBHOOK_URL) return;
-
-        fetch(GOOGLE_SHEET_WEBHOOK_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'text/plain;charset=utf-8'
-            },
-            body: JSON.stringify(payload)
-        }).catch(() => {});
-    }
-
     function finishTest(isTimeout) {
         clearInterval(timerInterval);
 
         let score = 0;
-
         questions.forEach((item, index) => {
             if (userAnswers[index] === item.correct) {
                 score++;
@@ -1014,25 +978,42 @@
             ? `${userData.fullname} (позывной: ${userData.callsign})` 
             : userData.fullname;
 
+        document.getElementById('res-user').innerHTML = `<strong>Курсант:</strong> ${userTitle}`;
+        document.getElementById('res-score').textContent = `${score} из ${questions.length}`;
+        
         const spentSeconds = (60 * 60) - timeRemaining;
         const spentMin = Math.floor(spentSeconds / 60);
         const spentSec = spentSeconds % 60;
-        const timeSpentFormatted = `${spentMin} мин. ${spentSec} сек.`;
+        const spentFormatted = `${spentMin} мин. ${spentSec} сек.`;
 
-        document.getElementById('res-user').innerHTML = `<strong>Курсант:</strong> ${userTitle}`;
-        document.getElementById('res-score').textContent = `${score} из ${questions.length}`;
         document.getElementById('res-time').textContent = isTimeout 
             ? 'Время вышло! Экзамен завершен автоматически.' 
-            : `Затрачено времени: ${timeSpentFormatted}`;
+            : `Затрачено времени: ${spentFormatted}`;
 
         showScreen('screen-result');
+        sendResultsToGoogleSheets(score, spentFormatted);
+    }
 
-        sendResultsToGoogleSheet({
+    function sendResultsToGoogleSheets(score, spentFormatted) {
+        if (!GOOGLE_SHEET_WEBHOOK_URL) {
+            return;
+        }
+
+        const payload = {
             fullname: userData.fullname,
             callsign: userData.callsign || "—",
             score: score,
-            timeSpent: isTimeout ? "60 мин. 0 сек. (время вышло)" : timeSpentFormatted
-        });
+            timeSpent: spentFormatted
+        };
+
+        fetch(GOOGLE_SHEET_WEBHOOK_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify(payload)
+        }).catch(() => {});
     }
 </script>
 

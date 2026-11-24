@@ -651,7 +651,7 @@
             correct: 3
         },
         {
-            q: "Главный принцип поисково-спасательных работ?",
+            q: "Главное принцип поисково-спасательных работ?",
             options: [
                 "Не увеличиваем количество пострадавших",
                 "Нельзя спорить на ПСР",
@@ -714,7 +714,7 @@
             options: [
                 "Нет. Старший всё знает, а поисковики идут за ним",
                 "Нет. Компас все равно только у СПГ",
-                "Да. Эти знания могут пригодиться даже обычному грибнику",
+                "Да. Эти знания могут пригодится даже обычному грибнику",
                 "Нет. Компас без карты не имеет ценности"
             ],
             correct: 2
@@ -823,7 +823,7 @@
             q: "Для чего нужно оборачиваться при работе на лесной задаче?",
             options: [
                 "Чтобы посмотреть, не идет ли за нами зверь",
-                "Чтобы убедиться, что мы не пропустили ничего важного",
+                "Чтобы убедиться, что мы не пропустили ничего важно",
                 "Всем оборачиваться необязательно",
                 "В лесу оборачиваться опасно!"
             ],
@@ -954,7 +954,7 @@
         }
     ];
 
-    // Алгоритм Фишера-Йетса для случайного перемешивания массива
+    // Алгоритм Фишера-Йейтса для перемешивания массива
     function shuffleArray(array) {
         const arr = [...array];
         for (let i = arr.length - 1; i > 0; i--) {
@@ -967,29 +967,25 @@
     // Подготовка перемешанных вопросов и вариантов ответов
     function buildShuffledQuestions() {
         const shuffledQ = shuffleArray(rawQuestions);
-        return shuffledQ.map(item => {
-            const optionsWithFlag = item.options.map((text, idx) => ({
-                text: text,
+        return shuffledQ.map((item) => {
+            const mappedOptions = item.options.map((optText, idx) => ({
+                text: optText,
                 isCorrect: idx === item.correct
             }));
 
-            // Если последний вариант — обобщающий («Все перечисленные пункты верны»),
-            // перемешиваем первые пункты, а обобщающий оставляем внизу для логичности,
-            // либо перемешиваем все, если таких нет.
-            const lastOptionText = optionsWithFlag[optionsWithFlag.length - 1].text.toLowerCase();
-            let shuffledOptions;
-
-            if (lastOptionText.includes("все перечисленные")) {
-                const head = shuffleArray(optionsWithFlag.slice(0, -1));
-                shuffledOptions = [...head, optionsWithFlag[optionsWithFlag.length - 1]];
+            const lastOpt = mappedOptions[mappedOptions.length - 1];
+            let finalOptions;
+            if (lastOpt && lastOpt.text.toLowerCase().includes("все перечисленные пункты верны")) {
+                const rest = shuffleArray(mappedOptions.slice(0, -1));
+                finalOptions = [...rest, lastOpt];
             } else {
-                shuffledOptions = shuffleArray(optionsWithFlag);
+                finalOptions = shuffleArray(mappedOptions);
             }
 
             return {
                 q: item.q,
-                options: shuffledOptions.map(o => o.text),
-                correct: shuffledOptions.findIndex(o => o.isCorrect)
+                options: finalOptions.map(o => o.text),
+                correct: finalOptions.findIndex(o => o.isCorrect)
             };
         });
     }
@@ -1001,6 +997,8 @@
     let userAnswers = [];
     let timeRemaining = 60 * 60; // 60 минут в секундах
     let timerInterval = null;
+    let isTestStarted = false;
+    let isResultSent = false;
 
     function showScreen(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -1029,10 +1027,12 @@
     }
 
     function startTest() {
-        // Формируем новый случайный порядок вопросов и ответов перед стартом
         questions = buildShuffledQuestions();
         userAnswers = new Array(questions.length).fill(null);
         currentQuestionIndex = 0;
+        timeRemaining = 60 * 60;
+        isTestStarted = true;
+        isResultSent = false;
 
         const timerEl = document.getElementById('timer');
         updateTimerDisplay();
@@ -1069,7 +1069,6 @@
 
         document.getElementById('question-counter').textContent = `Вопрос ${currentQuestionIndex + 1} из ${total}`;
         document.getElementById('progress-fill').style.width = `${((currentQuestionIndex + 1) / total) * 100}%`;
-        // Подставляем актуальный порядковый номер вопроса (1..40)
         document.getElementById('question-text').textContent = `${currentQuestionIndex + 1}. ${qData.q}`;
 
         const warningEl = document.getElementById('answer-warning');
@@ -1133,18 +1132,48 @@
         }
     }
 
-    function formatCurrentDateTime() {
+    function getFormattedDate() {
         const now = new Date();
-        const dd = String(now.getDate()).padStart(2, '0');
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const yyyy = now.getFullYear();
-        const hh = String(now.getHours()).padStart(2, '0');
-        const min = String(now.getMinutes()).padStart(2, '0');
-        return `${dd}.${mm}.${yyyy} ${hh}:${min}`;
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = now.getFullYear();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        return `${day}.${month}.${year} ${hours}:${minutes}`;
     }
 
-    function sendResultsToGoogleSheet(payload) {
-        if (!GOOGLE_SHEET_WEBHOOK_URL) return;
+    function calculateCurrentStats(statusSuffix) {
+        let score = 0;
+        let answeredCount = 0;
+        questions.forEach((item, index) => {
+            if (userAnswers[index] !== null) {
+                answeredCount++;
+                if (userAnswers[index] === item.correct) {
+                    score++;
+                }
+            }
+        });
+
+        const spentSeconds = Math.max(0, (60 * 60) - timeRemaining);
+        const spentMin = Math.floor(spentSeconds / 60);
+        const spentSec = spentSeconds % 60;
+        let timeSpentFormatted = `${spentMin} мин. ${spentSec} сек.`;
+        if (statusSuffix) {
+            timeSpentFormatted += ` (${statusSuffix}: ${answeredCount} из ${questions.length})`;
+        }
+
+        return {
+            date: getFormattedDate(),
+            fullname: userData.fullname,
+            callsign: userData.callsign || "—",
+            score: score,
+            timeSpent: timeSpentFormatted
+        };
+    }
+
+    function sendResultsToGoogleSheet(payload, useBeacon = false) {
+        if (!GOOGLE_SHEET_WEBHOOK_URL || isResultSent) return;
+        isResultSent = true;
 
         const formData = new URLSearchParams();
         formData.append("date", payload.date);
@@ -1153,9 +1182,18 @@
         formData.append("score", payload.score);
         formData.append("timeSpent", payload.timeSpent);
 
+        if (useBeacon && navigator.sendBeacon) {
+            const blob = new Blob([formData.toString()], {
+                type: "application/x-www-form-urlencoded;charset=UTF-8"
+            });
+            navigator.sendBeacon(GOOGLE_SHEET_WEBHOOK_URL, blob);
+            return;
+        }
+
         fetch(GOOGLE_SHEET_WEBHOOK_URL, {
             method: "POST",
             mode: "no-cors",
+            keepalive: true,
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
             },
@@ -1163,41 +1201,35 @@
         }).catch(() => {});
     }
 
+    // Автоматическая отправка при закрытии вкладки, обновлении страницы или уходе со страницы
+    function handleEarlyExit() {
+        if (isTestStarted && !isResultSent) {
+            const payload = calculateCurrentStats("прерван, отвечено");
+            sendResultsToGoogleSheet(payload, true);
+        }
+    }
+
+    window.addEventListener("pagehide", handleEarlyExit);
+    window.addEventListener("beforeunload", handleEarlyExit);
+
     function finishTest(isTimeout) {
         clearInterval(timerInterval);
 
-        let score = 0;
-        questions.forEach((item, index) => {
-            if (userAnswers[index] === item.correct) {
-                score++;
-            }
-        });
+        const stats = calculateCurrentStats(isTimeout ? "время вышло, отвечено" : "");
 
         const userTitle = userData.callsign 
             ? `${userData.fullname} (позывной: ${userData.callsign})` 
             : userData.fullname;
 
         document.getElementById('res-user').innerHTML = `<strong>Курсант:</strong> ${userTitle}`;
-        document.getElementById('res-score').textContent = `${score} из ${questions.length}`;
-        
-        const spentSeconds = (60 * 60) - timeRemaining;
-        const spentMin = Math.floor(spentSeconds / 60);
-        const spentSec = spentSeconds % 60;
-        const timeSpentFormatted = `${spentMin} мин. ${spentSec} сек.`;
+        document.getElementById('res-score').textContent = `${stats.score} из ${questions.length}`;
 
         document.getElementById('res-time').textContent = isTimeout 
             ? 'Время вышло! Экзамен завершен автоматически.' 
-            : `Затрачено времени: ${timeSpentFormatted}`;
+            : `Затрачено времени: ${stats.timeSpent}`;
 
         showScreen('screen-result');
-
-        sendResultsToGoogleSheet({
-            date: formatCurrentDateTime(),
-            fullname: userData.fullname,
-            callsign: userData.callsign || "—",
-            score: score,
-            timeSpent: timeSpentFormatted
-        });
+        sendResultsToGoogleSheet(stats, false);
     }
 </script>
 

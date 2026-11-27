@@ -485,6 +485,19 @@
                 <div id="res-time"></div>
             </div>
         </div>
+
+        <!-- ЭКРАН 5: Доступ закрыт (повторное прохождение с того же IP) -->
+        <div id="screen-blocked" class="screen">
+            <h1>Доступ к экзамену закрыт</h1>
+            <div class="result-summary">
+                <p style="margin-bottom: 8px; font-weight: 600; color: var(--la-dark);">
+                    С вашего IP-адреса<span id="blocked-ip-label"></span> экзамен уже был начат или пройден.
+                </p>
+                <p style="margin-bottom: 0;">
+                    Повторное прохождение экзамена с одного IP-адреса не предусмотрено.
+                </p>
+            </div>
+        </div>
     </div>
 </main>
 
@@ -549,6 +562,78 @@
 
     // URL веб-приложения Google Apps Script для записи результатов в Google Таблицу
     const GOOGLE_SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzdcXimqnQepUyVI1uiY4RHweEAh3PS6wZKgursgmqfJMweUXe1wvwHQkKSDn6YE2Xa/exec";
+
+    // Проверка и блокировка по IP-адресу
+    const IP_STORAGE_KEY = "la_kurspoiskovik_passed_ips_v1";
+    let currentClientIP = null;
+
+    function getStoredIPData() {
+        try {
+            return JSON.parse(localStorage.getItem(IP_STORAGE_KEY) || '{"ips":[],"locked":false}');
+        } catch (e) {
+            return { ips: [], locked: false };
+        }
+    }
+
+    function saveIPAttempt(ip) {
+        try {
+            const data = getStoredIPData();
+            data.locked = true;
+            if (ip && !data.ips.includes(ip)) {
+                data.ips.push(ip);
+            }
+            localStorage.setItem(IP_STORAGE_KEY, JSON.stringify(data));
+        } catch (e) {}
+    }
+
+    function isIPBlocked(ip) {
+        const data = getStoredIPData();
+        if (data.locked) return true;
+        if (ip && Array.isArray(data.ips) && data.ips.includes(ip)) return true;
+        return false;
+    }
+
+    async function fetchClientIP() {
+        const providers = [
+            async () => {
+                const res = await fetch("https://api.ipify.org?format=json", { cache: "no-store" });
+                const json = await res.json();
+                return json.ip;
+            },
+            async () => {
+                const res = await fetch("https://api64.ipify.org?format=json", { cache: "no-store" });
+                const json = await res.json();
+                return json.ip;
+            }
+        ];
+
+        for (const fn of providers) {
+            try {
+                const ip = await fn();
+                if (ip) return String(ip).trim();
+            } catch (e) {}
+        }
+        return null;
+    }
+
+    async function verifyAccessByIP() {
+        const ip = await fetchClientIP();
+        currentClientIP = ip;
+
+        if (isIPBlocked(ip)) {
+            const label = document.getElementById("blocked-ip-label");
+            if (label && ip) {
+                label.textContent = ` (${ip})`;
+            }
+            showScreen("screen-blocked");
+            return false;
+        }
+        return true;
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        verifyAccessByIP();
+    });
 
     // ИСХОДНАЯ БАЗА ВОПРОСОВ (40 вопросов курса «Поисковик»)
     const rawQuestions = [
@@ -1006,7 +1091,10 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function goToInstruction() {
+    async function goToInstruction() {
+        const allowed = await verifyAccessByIP();
+        if (!allowed) return;
+
         const fullnameInput = document.getElementById('fullname');
         const callsignInput = document.getElementById('callsign');
         const errorMsg = document.getElementById('fullname-error');
@@ -1026,7 +1114,13 @@
         showScreen('screen-instruction');
     }
 
-    function startTest() {
+    async function startTest() {
+        const allowed = await verifyAccessByIP();
+        if (!allowed) return;
+
+        // Фиксируем IP-адрес и факт запуска теста, чтобы заблокировать повторные попытки
+        saveIPAttempt(currentClientIP);
+
         questions = buildShuffledQuestions();
         userAnswers = new Array(questions.length).fill(null);
         currentQuestionIndex = 0;
@@ -1167,7 +1261,8 @@
             fullname: userData.fullname,
             callsign: userData.callsign || "—",
             score: score,
-            timeSpent: timeSpentFormatted
+            timeSpent: timeSpentFormatted,
+            ip: currentClientIP || "не определен"
         };
     }
 
@@ -1181,6 +1276,7 @@
         formData.append("callsign", payload.callsign);
         formData.append("score", payload.score);
         formData.append("timeSpent", payload.timeSpent);
+        formData.append("ip", payload.ip);
 
         if (useBeacon && navigator.sendBeacon) {
             const blob = new Blob([formData.toString()], {
@@ -1214,6 +1310,7 @@
 
     function finishTest(isTimeout) {
         clearInterval(timerInterval);
+        saveIPAttempt(currentClientIP);
 
         const stats = calculateCurrentStats(isTimeout ? "время вышло, отвечено" : "");
 
